@@ -181,6 +181,10 @@ std::tuple<tensorpipe::Message, TensorpipeWriteBuffers> tensorpipeSerialize(
   for (const auto i : c10::irange(tensorDataVec.size())) {
     const torch::Tensor& tensor = tensorDataVec[i];
 
+    if (tensor.is_meta()) {
+      continue;
+    }
+
     const TensorpipeDeviceTypeConverter* converter =
         getDeviceTypeConverter(tensor.device().type());
     TORCH_CHECK(
@@ -256,6 +260,10 @@ std::pair<tensorpipe::Allocation, TensorpipeReadBuffers> tensorpipeAllocate(
     c10::DeviceType targetDeviceType =
         convertDeviceType(tensor.targetDevice->type);
 
+    if (targetDeviceType == DeviceType::Meta) {
+      continue;
+    }
+
     const TensorpipeDeviceTypeConverter* converter =
         getDeviceTypeConverter(targetDeviceType);
     TORCH_INTERNAL_ASSERT(
@@ -304,7 +312,7 @@ c10::intrusive_ptr<Message> tensorpipeDeserialize(
       nullptr,
       tensorReadFunc,
       {},
-      /* use_storage_device*/ true);
+      /* use_storage_device*/ false);
 
   auto ival = unpickler.parse_ivalue();
   for (auto&& t : ival.toTensorList()) {
